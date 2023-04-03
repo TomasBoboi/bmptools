@@ -1,2 +1,2 @@
 # bmptools
- Simple BMP-handling library written in C
+Simple BMP-image handling library written in C.
