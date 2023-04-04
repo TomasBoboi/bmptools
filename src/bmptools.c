@@ -37,9 +37,6 @@ typedef struct __attribute__((__packed__)) bmp_BitmapInfoHeader_st {
 } bmp_BitmapInfoHeader_t;
 
 
-/* GLOBAL VARIABLES*/
-
-
 /* PRIVATE FUNCTIONS */
 static int bmp_WriteFileHeader(int outputFileDescriptor_fd, int32_t imageWidth_s32, int32_t imageHeight_s32, uint16_t bitsPerPixel_u16);
 static int bmp_WriteInfoHeader(int outputFileDescriptor_fd, int32_t imageWidth_s32, int32_t imageHeight_s32, uint16_t bitsPerPixel_u16);
@@ -100,14 +97,15 @@ static int bmp_WriteColorPalette(int outputFileDescriptor_fd, uint16_t bitsPerPi
 
     if(bitsPerPixel_u16 <= (uint16_t)8u)
     {
-        uint32_t currentColor_u32, colorToBeWritten_u32;
+        uint32_t currentColorIndex_u32, currentColor_u32, colorToBeWritten_u32;
         uint32_t numberOfColors_u32 = (uint32_t)(1 << bitsPerPixel_u16);
 
-        for(currentColor_u32 = 0u; currentColor_u32 < numberOfColors_u32; currentColor_u32++)
+        for(currentColorIndex_u32 = 0u; currentColorIndex_u32 < numberOfColors_u32; currentColorIndex_u32++)
         {
-            colorToBeWritten_u32 = currentColor_u32 * 0xFF / (numberOfColors_u32 - 1u);  colorToBeWritten_u32 <<= 8;
-            colorToBeWritten_u32 |= currentColor_u32 * 0xFF / (numberOfColors_u32 - 1u); colorToBeWritten_u32 <<= 8;
-            colorToBeWritten_u32 |= currentColor_u32 * 0xFF / (numberOfColors_u32 - 1u); colorToBeWritten_u32 &= 0x00FFFFFF;
+            currentColor_u32 = currentColorIndex_u32 * 0xFF / (numberOfColors_u32 - 1u);
+            colorToBeWritten_u32 = currentColor_u32;  colorToBeWritten_u32 <<= 8;
+            colorToBeWritten_u32 |= currentColor_u32; colorToBeWritten_u32 <<= 8;
+            colorToBeWritten_u32 |= currentColor_u32; colorToBeWritten_u32 &= 0x00FFFFFF;
 
             returnValue = write(outputFileDescriptor_fd, &colorToBeWritten_u32, sizeof(colorToBeWritten_u32));
         }
@@ -116,6 +114,7 @@ static int bmp_WriteColorPalette(int outputFileDescriptor_fd, uint16_t bitsPerPi
     return returnValue;
 }
 
+/* TODO: change file descriptor input to file-name input, it's more friendly */
 int bmp_WriteImage(int outputFileDescriptor_fd,
                    unsigned int **pixelData_ppu32,
                    signed int imageWidth_s32,
@@ -124,21 +123,22 @@ int bmp_WriteImage(int outputFileDescriptor_fd,
 {
     int returnValue = 0;
 
-    uint32_t zero = (uint32_t)0u;
+    uint32_t zero_u32 = (uint32_t)0u;
 
     returnValue = bmp_WriteFileHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32, bitsPerPixel_u16);
     returnValue = bmp_WriteInfoHeader(outputFileDescriptor_fd, imageWidth_s32, imageHeight_s32, bitsPerPixel_u16);
     returnValue = bmp_WriteColorPalette(outputFileDescriptor_fd, bitsPerPixel_u16);
 
+    /* TODO: adapt writing for different color-depths */
     for(int32_t rowIndex_s32 = imageHeight_s32 - 1; rowIndex_s32 >= 0 ; rowIndex_s32--)
     {
         for(int32_t columnIndex_s32 = 0; columnIndex_s32 < imageWidth_s32; columnIndex_s32++)
         {
             returnValue = write(outputFileDescriptor_fd, &pixelData_ppu32[rowIndex_s32][columnIndex_s32], sizeof(uint8_t));
         }
-        if(imageWidth_s32 % 4 != 0)
+        if(imageWidth_s32 % 4u != 0)
         {
-            write(outputFileDescriptor_fd, &zero, (4 - (imageWidth_s32 % 4)));
+            write(outputFileDescriptor_fd, &zero_u32, (4u - (imageWidth_s32 % 4u)));
         }
     }
 

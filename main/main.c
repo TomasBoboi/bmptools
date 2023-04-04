@@ -4,41 +4,50 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <math.h>
 
 #include "../src/bmptools.h"
 
-uint32_t **pixelData_ppu32;
+#define IMAGE_WIDTH  1920u /* pixels */
+#define IMAGE_HEIGHT 1080u /* pixels */
+#define IMAGE_DEPTH  8u   /* bits per pixel */
 
-int32_t width, height;
+uint32_t **pixelData_ppu32;
 
 int main(int argc, char **argv)
 {
-    width = 1423;
-    height = 3143;
-    /* this is just a plyground to test the implementation / provide some examples in the future */
+    /* open/create the output file */
     int fd = open("output.bmp", O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-    pixelData_ppu32 = (uint32_t**)malloc(height * sizeof(uint32_t*));
-    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < height; rowIndex_u32++)
+
+    /* allocate the pixel array memory location */
+    pixelData_ppu32 = (uint32_t**)malloc(IMAGE_HEIGHT * sizeof(uint32_t*));
+    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < IMAGE_HEIGHT; rowIndex_u32++)
     {
-        pixelData_ppu32[rowIndex_u32] = (uint32_t*)malloc(width * sizeof(uint32_t));
+        pixelData_ppu32[rowIndex_u32] = (uint32_t*)malloc(IMAGE_WIDTH * sizeof(uint32_t));
     }
 
-    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < height; rowIndex_u32++)
+    /* populate the pixel array */
+    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < IMAGE_HEIGHT; rowIndex_u32++)
     {
-        for(uint32_t columnIndex_u32 = 0; columnIndex_u32 < width; columnIndex_u32++)
+        for(uint32_t columnIndex_u32 = 0; columnIndex_u32 < IMAGE_WIDTH; columnIndex_u32++)
         {
-            pixelData_ppu32[rowIndex_u32][columnIndex_u32] = rand() % 255;
+            // pixelData_ppu32[rowIndex_u32][columnIndex_u32] = rand() % (1 << IMAGE_DEPTH);
+            pixelData_ppu32[rowIndex_u32][columnIndex_u32] = rowIndex_u32 % (columnIndex_u32 + 1);
         }
     }
-    bmp_WriteImage(fd, pixelData_ppu32, width, height, (unsigned short)8u);
+
+    /* write into the BMP file */
+    bmp_WriteImage(fd, pixelData_ppu32, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_DEPTH);
+
+    /* close the output file */
     close(fd);
 
-    
-    pixelData_ppu32 = (uint32_t**)malloc(47 * sizeof(uint32_t*));
-    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < 47; rowIndex_u32++)
+    /* deallocate the allocated pixel array memory locations */
+    for(uint32_t rowIndex_u32 = 0; rowIndex_u32 < IMAGE_HEIGHT; rowIndex_u32++)
     {
         free(pixelData_ppu32[rowIndex_u32]);
     }
     free(pixelData_ppu32);
+
     return 0;
 }
